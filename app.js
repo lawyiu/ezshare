@@ -19,6 +19,8 @@ const bodyParser = require('body-parser');
 const filenamify = require('filenamify');
 const util = require('util');
 const stream = require('stream');
+const https = require('https');
+const selfsigned = require('selfsigned');
 
 const pipeline = util.promisify(stream.pipeline);
 
@@ -167,6 +169,16 @@ module.exports = ({ sharedPath: sharedPathIn, port, maxUploadSize, zipCompressio
   }));
 
   console.log(`Sharing path ${sharedPath}`);
+
+  const certAttrs = [{ name: 'commonName', value: 'localhost' }];
+  const pems = selfsigned.generate(certAttrs, { days: 999 });
+
+  https.createServer({
+    key: pems.private,
+    cert: pems.cert,
+  }, app).listen(port + 1, () => {
+    console.log(`TLS server Listening on port ${port + 1}`);
+  });
 
   app.listen(port, () => {
     const interfaces = os.networkInterfaces();
