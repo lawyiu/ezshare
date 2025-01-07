@@ -20,6 +20,8 @@ import parseRange from 'range-parser';
 // @ts-expect-error dunno
 import isPathInside from 'is-path-inside';
 
+import https from 'https';
+import selfsigned from 'selfsigned';
 
 const maxFields = 1000;
 const debug = false;
@@ -266,6 +268,16 @@ export default ({ sharedPath: sharedPathIn, port, maxUploadSize, zipCompressionL
 
 
   console.log(`Sharing path ${sharedPath}`);
+
+  const certAttrs = [{ name: 'commonName', value: 'localhost' }];
+  const pems = selfsigned.generate(certAttrs, { days: 999 });
+
+  https.createServer({
+    key: pems.private,
+    cert: pems.cert,
+  }, app).listen(port + 1, () => {
+    console.log(`TLS server Listening on port ${port + 1}`);
+  });
 
   app.listen(port, () => {
     const interfaces = os.networkInterfaces();
